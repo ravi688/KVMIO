@@ -1,0 +1,15 @@
+{
+    "project_name": "KVMIO",
+    "canonical_name": "kvmio",
+    "include_dirs": "include",
+    "dependencies" : [ "libassert" ],
+    "targets": [
+        {
+            "name": "kvmio",
+            "is_executable": true,
+            "sources": [
+                "source/main.cpp"
+            ]
+        }
+    ]
+}
