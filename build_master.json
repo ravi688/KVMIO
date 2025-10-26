@@ -2,14 +2,48 @@
     "project_name": "KVMIO",
     "canonical_name": "kvmio",
     "include_dirs": "include",
-    "dependencies" : [ "libassert" ],
+    "dependencies" : [ "common", "bufferlib", "spdlog", "libassert", "cpptrace", "libdwarf", "libzstd" ],
+    "release_defines" : [ "-DKVMIO_RELEASE" ],
+    "debug_defines" : [ "-DKVMIO_DEBUG" ],
+    "defines" : [ "-DPREFIX_MACROS_AND_QUALIFY_SYMBOLS_WITH_COM" ],
     "targets": [
+        {
+            "name" : "kvmio_static",
+            "is_static_library" : true,
+            "description" : "Static Library for KVMIO",
+            "build_defines" : [ "-DKVMIO_BUILD_STATIC_LIBRARY" ],
+            "use_defines" : [ "-DKVMIO_USE_STATIC_LIBRARY" ],
+            "sources" : [ "$sources" ],
+            "windows_sources" : [ "$windows_sources" ]
+        },
+        {
+            "name" : "kvmio_shared",
+            "is_shared_library" : true,
+            "description" : "Shared Library for KVMIO",
+            "build_defines" : [ "-DKVMIO_BUILD_SHARED_LIBRARY" ],
+            "use_defines" : [ "-DKVMIO_USE_SHARED_LIBRARY" ],
+            "sources" : [ "$sources" ],
+            "windows_sources" : [ "$windows_sources" ]
+        },
         {
             "name": "kvmio",
             "is_executable": true,
+            "link_with" : [ "kvmio_static" ],
             "sources": [
                 "source/main.cpp"
             ]
         }
-    ]
+    ],
+    "vars" :
+    {
+        "sources" : [
+            "source/ErrorHandling.cpp"
+        ],
+        "windows_sources" : [
+            "source/Win32Window.cpp",
+            "source/Win32/Win32Window.cpp",
+            "source/Win32/Win32RawInput.cpp",
+            "source/Win32/Win32DrawSurface.cpp"
+        ]
+    }
 }

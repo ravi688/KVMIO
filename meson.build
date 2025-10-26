@@ -51,21 +51,30 @@ project('KVMIO', 'c', 'cpp',
 )
 
 # Variables
+sources = [
+'source/ErrorHandling.cpp'
+]
+windows_sources = [
+'source/Win32Window.cpp',
+'source/Win32/Win32Window.cpp',
+'source/Win32/Win32RawInput.cpp',
+'source/Win32/Win32DrawSurface.cpp'
+]
 
 
 # Defines
 defines_bm_internal__ = [
-
+'-DPREFIX_MACROS_AND_QUALIFY_SYMBOLS_WITH_COM'
 ]
 
 # Release Build Defines
 release_defines_bm_internal__ = [
-
+'-DKVMIO_RELEASE'
 ] 
 
 # Debug Build Defines
 debug_defines_bm_internal__ = [
-
+'-DKVMIO_DEBUG'
 ]
 
 # Source files (common to all targets)
@@ -83,7 +92,13 @@ lib_install_dir_bm_internal__ = get_option('libdir')/'kvmio'
 
 # Dependencies
 dependencies_bm_internal__ = [
-dependency('libassert')
+dependency('common'),
+dependency('bufferlib'),
+dependency('spdlog'),
+dependency('libassert'),
+dependency('cpptrace'),
+dependency('libdwarf'),
+dependency('libzstd')
 ]
 
 # Linker Arguments
@@ -189,6 +204,106 @@ message('pkg config path: ' + pkgconfig_install_path_bm_internal__)
 #--------------------------------BUILD TARGETS----------------------------------
 pkgmod = import('pkgconfig')
 
+# -------------- Target: kvmio_static ------------------
+kvmio_static_sources_bm_internal__ = [
+sources
+]
+kvmio_static_include_dirs_bm_internal__ = [
+
+]
+kvmio_static_dependencies_bm_internal__ = [
+
+]
+kvmio_static_link_args_bm_internal__ = {
+'windows' : [],
+'linux' : [],
+'darwin' : []
+}
+kvmio_static_platform_src_bm_internal__ = {
+'windows' : [windows_sources],
+'linux' : [],
+'darwin' : []
+}
+kvmio_static_build_defines_bm_internal__ = [
+'-DKVMIO_BUILD_STATIC_LIBRARY'
+]
+kvmio_static_use_defines_bm_internal__ = [
+'-DKVMIO_USE_STATIC_LIBRARY'
+]
+kvmio_static = static_library('kvmio_static',
+	kvmio_static_sources_bm_internal__ + kvmio_static_platform_src_bm_internal__[host_machine.system()] + sources_bm_internal__,
+	dependencies: dependencies_bm_internal__ + kvmio_static_dependencies_bm_internal__,
+	include_directories: [inc_bm_internal__, kvmio_static_include_dirs_bm_internal__],
+	install: true,
+	install_dir: lib_install_dir_bm_internal__,
+	c_args: kvmio_static_build_defines_bm_internal__ + project_build_mode_defines_bm_internal__,
+	cpp_args: kvmio_static_build_defines_bm_internal__ + project_build_mode_defines_bm_internal__, 
+	link_args: kvmio_static_link_args_bm_internal__[host_machine.system()],
+	gnu_symbol_visibility: 'hidden'
+)
+kvmio_static_dep = declare_dependency(
+	link_with: kvmio_static,
+	include_directories: [inc_bm_internal__, kvmio_static_include_dirs_bm_internal__],
+	compile_args: kvmio_static_use_defines_bm_internal__ + project_build_mode_defines_bm_internal__
+)
+pkgmod.generate(kvmio_static,
+	name: 'KVMIO',
+	description: 'Static Library for KVMIO',
+	filebase: 'kvmio_static',
+	install_dir: pkgconfig_install_path_bm_internal__,
+	extra_cflags: kvmio_static_use_defines_bm_internal__ + project_build_mode_defines_bm_internal__
+)
+
+# -------------- Target: kvmio_shared ------------------
+kvmio_shared_sources_bm_internal__ = [
+sources
+]
+kvmio_shared_include_dirs_bm_internal__ = [
+
+]
+kvmio_shared_dependencies_bm_internal__ = [
+
+]
+kvmio_shared_link_args_bm_internal__ = {
+'windows' : [],
+'linux' : [],
+'darwin' : []
+}
+kvmio_shared_platform_src_bm_internal__ = {
+'windows' : [windows_sources],
+'linux' : [],
+'darwin' : []
+}
+kvmio_shared_build_defines_bm_internal__ = [
+'-DKVMIO_BUILD_SHARED_LIBRARY'
+]
+kvmio_shared_use_defines_bm_internal__ = [
+'-DKVMIO_USE_SHARED_LIBRARY'
+]
+kvmio_shared = shared_library('kvmio_shared',
+	kvmio_shared_sources_bm_internal__ + kvmio_shared_platform_src_bm_internal__[host_machine.system()] + sources_bm_internal__,
+	dependencies: dependencies_bm_internal__ + kvmio_shared_dependencies_bm_internal__,
+	include_directories: [inc_bm_internal__, kvmio_shared_include_dirs_bm_internal__],
+	install: true,
+	install_dir: lib_install_dir_bm_internal__,
+	c_args: kvmio_shared_build_defines_bm_internal__ + project_build_mode_defines_bm_internal__,
+	cpp_args: kvmio_shared_build_defines_bm_internal__ + project_build_mode_defines_bm_internal__, 
+	link_args: kvmio_shared_link_args_bm_internal__[host_machine.system()],
+	gnu_symbol_visibility: 'hidden'
+)
+kvmio_shared_dep = declare_dependency(
+	link_with: kvmio_shared,
+	include_directories: [inc_bm_internal__, kvmio_shared_include_dirs_bm_internal__],
+	compile_args: kvmio_shared_use_defines_bm_internal__ + project_build_mode_defines_bm_internal__
+)
+pkgmod.generate(kvmio_shared,
+	name: 'KVMIO',
+	description: 'Shared Library for KVMIO',
+	filebase: 'kvmio_shared',
+	install_dir: pkgconfig_install_path_bm_internal__,
+	extra_cflags: kvmio_shared_use_defines_bm_internal__ + project_build_mode_defines_bm_internal__
+)
+
 # -------------- Target: kvmio ------------------
 kvmio_sources_bm_internal__ = [
 'source/main.cpp'
@@ -219,7 +334,11 @@ kvmio = executable('kvmio',
 	install: false,
 	c_args: kvmio_defines_bm_internal__ + project_build_mode_defines_bm_internal__,
 	cpp_args: kvmio_defines_bm_internal__ + project_build_mode_defines_bm_internal__, 
-	link_args: kvmio_link_args_bm_internal__[host_machine.system()],
+	link_args: kvmio_link_args_bm_internal__[host_machine.system()], 
+	link_with: [
+kvmio_static
+]
+,
 	gnu_symbol_visibility: 'hidden'
 )
 

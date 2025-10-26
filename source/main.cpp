@@ -1,15 +1,21 @@
-#include <libassert/assert.hpp>
+#include <iostream>
 
-#include <map>
+#include <common/platform.h>
 
-void zoog(const std::map<std::string, int>& map) {
-    DEBUG_ASSERT(map.contains("foo"), "expected key not found", map);
-}
+#ifdef PLATFORM_WINDOWS
+#	include <kvmio/Win32Window.hpp>
+#	define WINDOW_IMPLEMENTATION_OBJ kvmio::Win32Window
+#endif // PLATFORM_WINDOWS
 
+#include <memory> // for std::shared_ptr<>
 
 int main(int argc, const char** argv)
 {
-	zoog({ { "Foo", 43224 } });
-	zoog({ { "Hello World", 434 } });
+	std::shared_ptr<kvmio::Window> window = std::make_shared<WINDOW_IMPLEMENTATION_OBJ>(800, 800, "My Window");
+
+	window->show();
+
+	window->runGameLoop();
+
 	return 0;
 }
