@@ -22,6 +22,7 @@ namespace kvmio
 		virtual bool isShouldClose() = 0;
 		virtual void setFrameFormat(FrameFormat frameFormat) = 0;
 		virtual void setFrameDisplayCallback(const PaintCallback& callback) = 0;
+		virtual void setFullScreen(bool isFullScreen) = 0;
 		virtual void show() = 0;
 		virtual void runGameLoop() = 0;
 		virtual void runGameLoop(u32 frameRate, const Predicate& isLoop = [] { return true; }) = 0;

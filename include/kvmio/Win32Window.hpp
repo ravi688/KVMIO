@@ -91,6 +91,7 @@ namespace kvmio
 		virtual bool isShouldClose() override { return shouldClose(); }
 		virtual void setFrameFormat(FrameFormat frameFormat) override { m_frameFormat = frameFormat; }
 		virtual void setFrameDisplayCallback(const PaintCallback& callback) override { m_paintCallback = callback; }
+		virtual void setFullScreen(bool isFullScreen) override;
 		virtual void show() override;
 		virtual void runGameLoop() override;
 		virtual void runGameLoop(u32 frameRate, const Predicate& isLoop = [] { return true; }) override;
@@ -102,7 +103,6 @@ namespace kvmio
 		bool isFullScreen() const noexcept { return m_isFullScreen; }
 		bool shouldClose(bool isBlock = true);
 		void lock(bool isLock) { showCursor(!isLock); }
-		void setFullScreen(bool isFullScreen);
 		void showCursor(bool isShow);
 		void pollEvents();
 		void setMouseCapture();
