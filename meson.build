@@ -58,7 +58,8 @@ windows_sources = [
 'source/Win32Window.cpp',
 'source/Win32/Win32Window.cpp',
 'source/Win32/Win32RawInput.cpp',
-'source/Win32/Win32DrawSurface.cpp'
+'source/Win32/Win32DrawSurface.cpp',
+'source/NV12ToRGBConverter.cpp'
 ]
 
 
@@ -94,6 +95,8 @@ lib_install_dir_bm_internal__ = get_option('libdir')/'kvmio'
 dependencies_bm_internal__ = [
 dependency('common'),
 dependency('bufferlib'),
+dependency('playvk'),
+dependency('vulkanheaders'),
 dependency('spdlog'),
 dependency('libassert'),
 dependency('cpptrace'),
@@ -103,7 +106,7 @@ dependency('libzstd')
 
 # Linker Arguments
 windows_link_args_bm_internal__ = [ 
-
+'-lws2_32', '-lole32', '-loleaut32', '-lmfreadwrite', '-lmfplat', '-lmf', '-lmfuuid', '-lgdi32', '-lwmcodecdspuuid', '-lcrypt32'
 ]
 linux_link_args_bm_internal__ = [
 

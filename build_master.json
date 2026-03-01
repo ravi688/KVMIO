@@ -2,10 +2,22 @@
     "project_name": "KVMIO",
     "canonical_name": "kvmio",
     "include_dirs": "include",
-    "dependencies" : [ "common", "bufferlib", "spdlog", "libassert", "cpptrace", "libdwarf", "libzstd" ],
+    "dependencies" : [ "common", "bufferlib", "playvk", "vulkanheaders", "spdlog", "libassert", "cpptrace", "libdwarf", "libzstd" ],
     "release_defines" : [ "-DKVMIO_RELEASE" ],
     "debug_defines" : [ "-DKVMIO_DEBUG" ],
     "defines" : [ "-DPREFIX_MACROS_AND_QUALIFY_SYMBOLS_WITH_COM" ],
+    "windows_link_args" : [
+        "-lws2_32",
+        "-lole32",
+        "-loleaut32",
+        "-lmfreadwrite",
+        "-lmfplat",
+        "-lmf",
+        "-lmfuuid",
+        "-lgdi32",
+        "-lwmcodecdspuuid",
+        "-lcrypt32"
+    ],
     "targets": [
         {
             "name" : "kvmio_static",
@@ -43,7 +55,8 @@
             "source/Win32Window.cpp",
             "source/Win32/Win32Window.cpp",
             "source/Win32/Win32RawInput.cpp",
-            "source/Win32/Win32DrawSurface.cpp"
+            "source/Win32/Win32DrawSurface.cpp",
+            "source/NV12ToRGBConverter.cpp"
         ]
     }
 }

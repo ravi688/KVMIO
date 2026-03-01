@@ -7,6 +7,7 @@
 #include <libassert/assert.hpp>
 
 #include <chrono>
+#include <cstring>
 
 namespace kvmio
 {
@@ -29,21 +30,34 @@ namespace kvmio
 											m_width(width),
 											m_height(height),
 											m_isFullScreen(false),
-											m_isLocked(false),
-											m_frameFormat(FrameFormat::NV12)
+											m_isLocked(false)
 	{
 		m_handle = Win32::Win32CreateWindow(width, height, std::string { name }.c_str(), WindowProc);
 		setSize(width, height);
 		setPosition(0, 0);
 		setZOrder(HWND_TOP);
 
-		m_drawSurface = std::make_unique<Win32::Win32DrawSurface>(m_handle, width, height, 32u);
+		m_drawSurface = std::make_unique<Win32::Win32DrawSurface>(m_handle, 1920, 1080, 32u);
 
 		m_rawInputBuffer = buf_create(sizeof(u8), sizeof(RAWINPUT), 0);
 
 		gWindowsSelfReferenceRegistry.insert({ m_handle, this });
 
 		GetClipCursor(&m_saveClipRect);
+
+		m_rgbFrameSize = 1920 * 1080 * 4;
+
+		m_pooledFrames = std::make_unique<DataPool>([this]()
+		{
+			u8* data = new u8[m_rgbFrameSize];
+			return std::span <u8> { data, m_rgbFrameSize };
+		},
+		[](std::span<u8>& s)
+		{
+			delete[] s.data();
+		});
+
+		m_nv12ToRGBConverter = std::make_unique<NV12ToRGBConverter>(1920, 1080, 60, 1, 32);
 	}
 
 	Win32Window::~Win32Window()
@@ -79,6 +93,20 @@ namespace kvmio
 			
 			pollEvents();
 		}
+	}
+
+	void Win32Window::present(std::span<const u8> frameData)
+	{
+		u8* data = m_nv12ToRGBConverter->convert(frameData.data(), frameData.size());
+		DataPool::ElementType dstFrameData;
+		{
+			std::lock_guard<std::mutex> lock(m_pooledFramesMutex);
+			dstFrameData = m_pooledFrames->get();
+		}
+		auto dataSize = m_nv12ToRGBConverter->getRGBDataSize();
+		std::memcpy(dstFrameData->data(), data, dataSize);
+		*dstFrameData = { dstFrameData->data(), dataSize };
+		m_inFlightFramesBuffer.push(dstFrameData);
 	}
 
 	bool Win32Window::shouldClose(bool isBlock)
@@ -437,12 +465,17 @@ namespace kvmio
 				if(BeginPaint(hwnd, &paintStruct) == NULL)
 					kvmio_Internal_ErrorExit("BeginPaint");
 
-				Win32::WindowPaintInfo paintInfo = { paintStruct.hdc, paintStruct.rcPaint };
-				if(window->m_paintCallback)
+				if(!window->m_inFlightFramesBuffer.isEmpty())
 				{
-					std::span<const std::byte> frameData = window->m_paintCallback();
-					DEBUG_ASSERT(frameData.size() == window->m_drawSurface->getBufferSize());
-					memcpy(window->m_drawSurface->getPixels(), reinterpret_cast<const char*>(frameData.data()), frameData.size());
+					Win32::WindowPaintInfo paintInfo = { paintStruct.hdc, paintStruct.rcPaint };
+					auto frameData = window->m_inFlightFramesBuffer.pop();
+					DEBUG_ASSERT(frameData->size() == window->m_drawSurface->getBufferSize());
+					memcpy(window->m_drawSurface->getPixels(), reinterpret_cast<const char*>(frameData->data()), frameData->size());
+					{
+						std::lock_guard<std::mutex> lock(window->m_pooledFramesMutex);
+						window->m_pooledFrames->putFast(frameData);
+					}
+					
 					auto drawSurfaceSize = window->m_drawSurface->getSize();
 					// Do Paint
 					BitBlt(paintInfo.deviceContext, 0, 0, drawSurfaceSize.first, drawSurfaceSize.second, window->m_drawSurface->getHDC(), 0, 0, SRCCOPY);

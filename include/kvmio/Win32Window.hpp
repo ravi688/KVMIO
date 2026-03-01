@@ -2,8 +2,11 @@
 
 #include <kvmio/Window.hpp>
 #include <kvmio/Win32/Win32.hpp>
+#include <kvmio/NV12ToRGBConverter.hpp>
 
 #include <common/Event.hpp>
+#include <common/DynamicPoolFast.hpp>
+#include <common/ProducerConsumerBuffer.hpp>
 
 #include <bufferlib/buffer.h>
 
@@ -14,7 +17,7 @@
 
 #include <unordered_map>
 #include <vector>
-#include <atomic>
+#include <mutex>
 #include <memory>
 
 namespace kvmio
@@ -59,8 +62,14 @@ namespace kvmio
 		std::vector<std::pair<KeyComb, com::Event<com::no_publish_ptr_t, KeyInputComb>>> m_keyCombs;
 		std::vector<Win32::KeyboardInput> m_curKeyComb;
 		bool m_isLocked;
-		PaintCallback m_paintCallback;
-		FrameFormat m_frameFormat;
+
+		u32 m_rgbFrameSize;
+		using DataPool = com::DynamicPoolFast<std::span<u8>>;
+		std::mutex m_pooledFramesMutex;
+		std::unique_ptr<DataPool> m_pooledFrames;
+		com::ProducerConsumerBuffer<DataPool::ElementType> m_inFlightFramesBuffer;
+
+		std::unique_ptr<NV12ToRGBConverter> m_nv12ToRGBConverter;
 
 		com::Event<com::no_publish_ptr_t, Win32::MouseInput> m_mouseEvent;
 		com::Event<com::no_publish_ptr_t, Win32::KeyboardInput>  m_keyboardEvent;
@@ -89,13 +98,12 @@ namespace kvmio
 
 		// Implementation of Window
 		virtual bool isShouldClose() override { return shouldClose(); }
-		virtual void setFrameFormat(FrameFormat frameFormat) override { m_frameFormat = frameFormat; }
-		virtual void setFrameDisplayCallback(const PaintCallback& callback) override { m_paintCallback = callback; }
 		virtual void setFullScreen(bool isFullScreen) override;
 		virtual void show() override;
 		virtual void runGameLoop() override;
 		virtual void runGameLoop(u32 frameRate, const Predicate& isLoop = [] { return true; }) override;
-	
+		virtual void present(std::span<const u8> frameData) override;
+
 		Internal_WindowHandle getNativeHandle() { return m_handle; }
 	
 
