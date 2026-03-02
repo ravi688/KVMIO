@@ -18,6 +18,7 @@
 #include <unordered_map>
 #include <vector>
 #include <mutex>
+#include <atomic>
 #include <memory>
 
 namespace kvmio
@@ -62,6 +63,8 @@ namespace kvmio
 		std::vector<std::pair<KeyComb, com::Event<com::no_publish_ptr_t, KeyInputComb>>> m_keyCombs;
 		std::vector<Win32::KeyboardInput> m_curKeyComb;
 		bool m_isLocked;
+		bool m_isWindowShouldClose;
+		std::atomic<bool> m_isDestroyed;
 
 		u32 m_rgbFrameSize;
 		using DataPool = com::DynamicPoolFast<std::span<u8>>;
@@ -73,6 +76,9 @@ namespace kvmio
 
 		com::Event<com::no_publish_ptr_t, Win32::MouseInput> m_mouseEvent;
 		com::Event<com::no_publish_ptr_t, Win32::KeyboardInput>  m_keyboardEvent;
+
+		// Idempotent
+		void _destroy();
 
 	public:
 		typedef Internal_HookHandle HookHandle;
@@ -109,10 +115,10 @@ namespace kvmio
 
 		bool isLocked() const noexcept { return m_isLocked; }
 		bool isFullScreen() const noexcept { return m_isFullScreen; }
-		bool shouldClose(bool isBlock = true);
+		bool shouldClose();
 		void lock(bool isLock) { showCursor(!isLock); }
 		void showCursor(bool isShow);
-		void pollEvents();
+		void pollEvents(bool isBlock = true);
 		void setMouseCapture();
 		void releaseMouseCapture();
 		void setSize(u32 width, u32 height);

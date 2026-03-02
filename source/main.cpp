@@ -57,6 +57,7 @@ int main(int argc, const char** argv)
 	if(presentThread.joinable())
 	{
 		gIsPresent = false;
+		spdlog::info("Waiting for the present thread to be finished");
 		presentThread.join();
 	}
 	

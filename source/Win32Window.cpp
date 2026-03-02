@@ -5,6 +5,7 @@
 #include <bufferlib/buffer.h>
 
 #include <libassert/assert.hpp>
+#include <spdlog/spdlog.h>
 
 #include <chrono>
 #include <cstring>
@@ -30,7 +31,9 @@ namespace kvmio
 											m_width(width),
 											m_height(height),
 											m_isFullScreen(false),
-											m_isLocked(false)
+											m_isLocked(false),
+											m_isWindowShouldClose(false),
+											m_isDestroyed(false)
 	{
 		m_handle = Win32::Win32CreateWindow(width, height, std::string { name }.c_str(), WindowProc);
 		setSize(width, height);
@@ -62,19 +65,26 @@ namespace kvmio
 
 	Win32Window::~Win32Window()
 	{
+		_destroy();
+	}
+
+	void Win32Window::_destroy()
+	{
+		if(m_isDestroyed)
+			return;
 		lock(false);
 		Win32::Win32DestroyWindow(m_handle);
 		gWindowsSelfReferenceRegistry.erase(m_handle);
 		buf_free(&m_rawInputBuffer);
+		m_isDestroyed = true;
 	}
 
-	
 	void Win32Window::runGameLoop()
 	{
-		while(!shouldClose(false))
+		while(!shouldClose())
 		{
 			invalidateRect();
-			pollEvents();
+			pollEvents(false);
 		}
 	}
 
@@ -82,7 +92,7 @@ namespace kvmio
 	{
 		const f64 deltaTime = 1000.0 / frameRate;
 		auto startTime = std::chrono::high_resolution_clock::now();
-		while(isLoop() && (!shouldClose(false)))
+		while(isLoop() && (!shouldClose()))
 		{
 			auto time = std::chrono::high_resolution_clock::now();
 			if(std::chrono::duration_cast<std::chrono::milliseconds>(time - startTime).count() >= deltaTime)
@@ -91,12 +101,14 @@ namespace kvmio
 				startTime = time;
 			}
 			
-			pollEvents();
+			pollEvents(false);
 		}
 	}
 
 	void Win32Window::present(std::span<const u8> frameData)
 	{
+		if(m_isDestroyed)
+			return;
 		u8* data = m_nv12ToRGBConverter->convert(frameData.data(), frameData.size());
 		DataPool::ElementType dstFrameData;
 		{
@@ -109,34 +121,9 @@ namespace kvmio
 		m_inFlightFramesBuffer.push(dstFrameData);
 	}
 
-	bool Win32Window::shouldClose(bool isBlock)
+	bool Win32Window::shouldClose()
 	{
-		if(isBlock)
-		{
-			BOOL result = GetMessage(&m_msg, NULL, 0, 0);
-			if(result == 0)
-			{
-				DestroyWindow(m_handle);
-				return true;
-			}
-			else if(result == -1)
-			{
-				/* Invoke the error handler here*/
-				/* But for now let's exit */
-				exit(-1);
-			}
-			m_isMessageAvailable = true;
-		}
-		else if(PeekMessage(&m_msg, NULL, 0, 0, PM_REMOVE) != 0)
-		{
-			m_isMessageAvailable = true;
-			if(m_msg.message == WM_QUIT)
-			{
-				DestroyWindow(m_handle);
-				return true;
-			}
-		}
-		return false;
+		return m_isWindowShouldClose || m_isDestroyed;
 	}
 
 	void Win32Window::show()
@@ -229,11 +216,23 @@ namespace kvmio
 		}
 	}
 
-	void Win32Window::pollEvents()
+	void Win32Window::pollEvents(bool isBlock)
 	{
-		if(!m_isMessageAvailable)
+		if(isBlock)
+		{
+			BOOL result = GetMessage(&m_msg, NULL, 0, 0);
+			if(result == -1)
+			{
+				/* Invoke the error handler here*/
+				/* But for now let's exit */
+				exit(-1);
+			}
+		}
+		else if(!PeekMessage(&m_msg, NULL, 0, 0, PM_REMOVE))
+		{
 			return;
-		m_isMessageAvailable = false;
+		}
+
 		TranslateMessage(&m_msg);
 		DispatchMessage(&m_msg);
 	}
@@ -487,6 +486,13 @@ namespace kvmio
 			}
 
 			case WM_CLOSE:
+			{
+				window->_destroy();
+				window->m_isWindowShouldClose = true;
+				return 0;
+			}
+
+			case WM_DESTROY:
 			{
 				PostQuitMessage(0);
 				return 0;
