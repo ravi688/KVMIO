@@ -12,13 +12,6 @@
 
 std::atomic<bool> gIsPresent = true;
 
-template<typename To, typename From>
-std::span<To> span_cast(std::span<From> s)
-{
-    static_assert(sizeof(To) == sizeof(From));
-    return { reinterpret_cast<To*>(s.data()), s.size() };
-}
-
 void HandlePresent(kvmio::Window& window)
 {
 	auto fileData1 = com::LoadBinaryFile("data/picture1.nv12");
@@ -36,9 +29,9 @@ void HandlePresent(kvmio::Window& window)
 	while(gIsPresent)
 	{
 		std::this_thread::sleep_for(std::chrono::duration<float, std::ratio<1, 1>>(1));
-		window.present(span_cast<const u8>(fileData1.span()));
+		window.present(com::span_cast<const u8>(fileData1.span()));
 		std::this_thread::sleep_for(std::chrono::duration<float, std::ratio<1, 1>>(1));
-		window.present(span_cast<const u8>(fileData2.span()));
+		window.present(com::span_cast<const u8>(fileData2.span()));
 	}
 	fileData1.destroy();
 	fileData2.destroy();
