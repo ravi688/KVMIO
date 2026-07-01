@@ -5,7 +5,7 @@
 #include <kvmio/NV12ToRGBConverter.hpp>
 
 #include <common/Event.hpp>
-#include <common/DynamicPoolFast.hpp>
+#include <common/DynamicPool.hpp>
 #include <common/ProducerConsumerBuffer.hpp>
 
 #include <bufferlib/buffer.h>
@@ -67,7 +67,7 @@ namespace kvmio
 		std::atomic<bool> m_isDestroyed;
 
 		u32 m_rgbFrameSize;
-		using DataPool = com::DynamicPoolFast<std::span<u8>>;
+		using DataPool = com::DynamicPool<std::span<u8>>;
 		std::mutex m_pooledFramesMutex;
 		std::unique_ptr<DataPool> m_pooledFrames;
 		com::ProducerConsumerBuffer<DataPool::ElementType> m_inFlightFramesBuffer;

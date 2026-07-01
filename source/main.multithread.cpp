@@ -1,0 +1,67 @@
+#include <iostream>
+
+#include <kvmio/NativeWindow.hpp>
+#include <common/Utility.hpp>
+#include <spdlog/spdlog.h>
+
+#include <memory> // for std::unique_ptr<>
+#include <thread>
+#include <atomic>
+#include <chrono>
+
+
+std::atomic<bool> gIsPresent = true;
+
+void HandlePresent(kvmio::Window& window)
+{
+	auto fileData1 = com::LoadBinaryFile("data/picture1.nv12");
+	if(!fileData1)
+	{
+		spdlog::critical("Failed to load file data/picture1.nv12");
+		exit(-1);
+	}
+	auto fileData2 = com::LoadBinaryFile("data/picture2.nv12");
+	if(!fileData2)
+	{
+		spdlog::critical("Failed to load file data/picture2.nv12");
+		exit(-1);
+	}
+	while(gIsPresent)
+	{
+		std::this_thread::sleep_for(std::chrono::duration<float, std::ratio<1, 1>>(1));
+		window.present(com::span_cast<const u8>(fileData1.span()));
+		std::this_thread::sleep_for(std::chrono::duration<float, std::ratio<1, 1>>(1));
+		window.present(com::span_cast<const u8>(fileData2.span()));
+	}
+	fileData1.destroy();
+	fileData2.destroy();
+}
+
+void HandlePolling(kvmio::Window& window)
+{
+	window.show();
+	window.runGameLoop();
+}
+
+int main(int argc, const char** argv)
+{
+	std::unique_ptr<kvmio::Window> window = std::make_unique<kvmio::NativeWindow>(800, 800, "My Window");
+
+	std::thread pollingThread(HandlePolling, std::ref(*window));
+	std::thread presentThread(HandlePresent, std::ref(*window));
+
+	if(pollingThread.joinable())
+	{
+		spdlog::info("Waiting for the polling thread to be finished");
+		pollingThread.join();
+	}
+
+	if(presentThread.joinable())
+	{
+		gIsPresent = false;
+		spdlog::info("Waiting for the present thread to be finished");
+		presentThread.join();
+	}
+	
+	return 0;
+}

@@ -58,7 +58,10 @@ namespace kvmio
 		[](std::span<u8>& s)
 		{
 			delete[] s.data();
-		});
+		},
+		nullptr,
+		nullptr,
+		[](std::span<u8>& s1, std::span<u8>& s2) -> bool { return s1.data() == s2.data(); });
 
 		m_nv12ToRGBConverter = std::make_unique<NV12ToRGBConverter>(1920, 1080, 60, 1, 32);
 	}
@@ -116,8 +119,9 @@ namespace kvmio
 			dstFrameData = m_pooledFrames->get();
 		}
 		auto dataSize = m_nv12ToRGBConverter->getRGBDataSize();
-		std::memcpy(dstFrameData->data(), data, dataSize);
-		*dstFrameData = { dstFrameData->data(), dataSize };
+		std::span<u8>& t = dstFrameData;
+		std::memcpy(t.data(), data, dataSize);
+		t = { t.data(), dataSize };
 		m_inFlightFramesBuffer.push(dstFrameData);
 	}
 
@@ -468,8 +472,9 @@ namespace kvmio
 				{
 					Win32::WindowPaintInfo paintInfo = { paintStruct.hdc, paintStruct.rcPaint };
 					auto frameData = window->m_inFlightFramesBuffer.pop();
-					DEBUG_ASSERT(frameData->size() == window->m_drawSurface->getBufferSize());
-					memcpy(window->m_drawSurface->getPixels(), reinterpret_cast<const char*>(frameData->data()), frameData->size());
+					std::span<u8>& t = frameData;
+					DEBUG_ASSERT(t.size() == window->m_drawSurface->getBufferSize());
+					memcpy(window->m_drawSurface->getPixels(), reinterpret_cast<const char*>(t.data()), t.size());
 					{
 						std::lock_guard<std::mutex> lock(window->m_pooledFramesMutex);
 						window->m_pooledFrames->put(frameData);
