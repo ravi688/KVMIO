@@ -364,44 +364,6 @@ kvmio_static
 	gnu_symbol_visibility: 'hidden'
 )
 
-# -------------- Target: kvmio_multithread ------------------
-kvmio_multithread_sources_bm_internal__ = [
-'source/main.multithread.cpp'
-]
-kvmio_multithread_include_dirs_bm_internal__ = [
-
-]
-kvmio_multithread_dependencies_bm_internal__ = [
-
-]
-kvmio_multithread_link_args_bm_internal__ = {
-'windows' : [],
-'linux' : [],
-'darwin' : []
-}
-kvmio_multithread_platform_src_bm_internal__ = {
-'windows' : [],
-'linux' : [],
-'darwin' : []
-}
-kvmio_multithread_defines_bm_internal__ = [
-
-]
-kvmio_multithread = executable('kvmio_multithread',
-	kvmio_multithread_sources_bm_internal__ + kvmio_multithread_platform_src_bm_internal__[host_machine.system()] + sources_bm_internal__,
-	dependencies: dependencies_bm_internal__ + kvmio_multithread_dependencies_bm_internal__,
-	include_directories: [inc_bm_internal__, kvmio_multithread_include_dirs_bm_internal__],
-	install: false,
-	c_args: kvmio_multithread_defines_bm_internal__ + project_build_mode_defines_bm_internal__,
-	cpp_args: kvmio_multithread_defines_bm_internal__ + project_build_mode_defines_bm_internal__, 
-	link_args: kvmio_multithread_link_args_bm_internal__[host_machine.system()], 
-	link_with: [
-kvmio_static
-]
-,
-	gnu_symbol_visibility: 'hidden'
-)
-
 
 #-------------------------------------------------------------------------------
 #--------------------------------Header Intallation----------------------------------

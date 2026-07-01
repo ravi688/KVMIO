@@ -44,14 +44,6 @@
             "sources": [
                 "source/main.cpp"
             ]
-        },
-        {
-            "name": "kvmio_multithread",
-            "is_executable": true,
-            "link_with" : [ "kvmio_static" ],
-            "sources": [
-                "source/main.multithread.cpp"
-            ]
         }
     ],
     "vars" :
