@@ -472,7 +472,7 @@ namespace kvmio
 					memcpy(window->m_drawSurface->getPixels(), reinterpret_cast<const char*>(frameData->data()), frameData->size());
 					{
 						std::lock_guard<std::mutex> lock(window->m_pooledFramesMutex);
-						window->m_pooledFrames->putFast(frameData);
+						window->m_pooledFrames->put(frameData);
 					}
 					
 					auto drawSurfaceSize = window->m_drawSurface->getSize();
